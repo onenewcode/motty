@@ -241,11 +241,6 @@ func (state *State) scrollCommandPalette(event ui.ScrollEvent) ui.EventResult {
 		if row < int(palette.visibleCount) && !palette.entries[palette.visible[row]].header {
 			palette.selected = uint8(row)
 		}
-	} else if visible, ok := target.In(hitCommandPaletteHeaders); ok {
-		row := int(palette.top) + visible
-		if row < int(palette.visibleCount) && !palette.entries[palette.visible[row]].header {
-			palette.selected = uint8(row)
-		}
 	}
 	return ui.EventResult{Handled: true, Repaint: palette.top != beforeTop || palette.selected != beforeSelected}
 }
