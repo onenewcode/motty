@@ -24,19 +24,13 @@ func (state *State) paintCommandPalette(canvas *ui.Canvas, viewport ui.Rect) {
 	focused := canvas.Focused() == hitCommandPaletteSearch
 	palette := &state.commandPalette
 	count := min(int(palette.visibleCount)-int(palette.top), commandPaletteVisibleRows)
-	// One row is the current one. The pointer on a row makes it that one, so the
-	// row the keyboard last chose does not stay lit beside it. A heading is not
-	// a choice: the pointer there lights nothing, rather than falling back to
-	// the keyboard's first row.
-	current, overHeading := -1, false
+	// A heading is not a choice: the pointer there lights nothing.
+	overHeading := false
 	for visible := 0; visible < count; visible++ {
 		entry := palette.entries[palette.visible[int(palette.top)+visible]]
-		if entry.header {
-			overHeading = overHeading || canvas.Hovered() == hitCommandPaletteHeaders.At(visible)
-			continue
-		}
-		if canvas.Hovered() == hitCommandPaletteItems.At(visible) {
-			current = visible
+		if entry.header && canvas.Hovered() == hitCommandPaletteHeaders.At(visible) {
+			overHeading = true
+			break
 		}
 	}
 
@@ -64,7 +58,7 @@ func (state *State) paintCommandPalette(canvas *ui.Canvas, viewport ui.Rect) {
 					continue
 				}
 				id := hitCommandPaletteItems.At(visible)
-				selected := current == visible || current < 0 && !overHeading && (palette.selected == palette.top+uint8(visible) || canvas.Focused() == id)
+				selected := !overHeading && palette.selected == palette.top+uint8(visible)
 				color, detailColor := state.pal.muted, state.pal.faint
 				if selected {
 					color, detailColor = state.pal.onAccent, state.pal.onAccent
@@ -95,6 +89,7 @@ func (state *State) paintCommandPalette(canvas *ui.Canvas, viewport ui.Rect) {
 	components.PaintInput(canvas, state.Theme(), search.Rect(), components.InputSnapshot{
 		ID: hitCommandPaletteSearch, Label: title, Value: value,
 		Placeholder: placeholder, Focused: focused, PlatformEditing: focused && value != "",
+		NavigationKeys: true,
 	})
 	dialog.End()
 }
