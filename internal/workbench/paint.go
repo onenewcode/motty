@@ -153,7 +153,7 @@ func (state *State) Paint(canvas *ui.Canvas, size ui.Size) {
 		state.paintWorkspacePanes(canvas, size)
 		state.paintAIPanel(canvas, size)
 	} else {
-		workspace := workspaceSlot.Rect()
+		workspace := workspaceSlot.Rect().Inset(ui.All(1))
 		canvas.Clip(workspace)
 		if !state.devPaintPage(canvas, workspace) {
 			switch state.activeSection {

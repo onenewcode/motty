@@ -302,3 +302,32 @@ func TestSettingsPageScrollsWhenTheWindowIsShort(t *testing.T) {
 		t.Fatalf("scroll = %v, want the top", state.settingsScroll)
 	}
 }
+
+func TestSettingsScrollDoesNotOverlapWorkspaceBorder(t *testing.T) {
+	state := newTestState(t, testOptions(t))
+	state.Click(hitSettings)
+	size := ui.Size{Width: 1000, Height: 640}
+	state.selectSettingsCategory(settingsTerminal)
+	state.scrollSettings(ui.ScrollEvent{DeltaY: 300, Precise: true})
+	var canvas ui.Canvas
+	state.Paint(&canvas, size)
+
+	// In the workspace, find any rectangles painted for settings (e.g. pal.surface).
+	// They must all have HasClip == true and their ClipOf.Y must be >= windowBarHeight + 1
+	// so that none of them can draw over the 1px top border of workspaceSlot.
+	foundSettingsRect := false
+	for _, r := range canvas.Rectangles() {
+		if r.Color == state.pal.surface {
+			foundSettingsRect = true
+			if !r.HasClip {
+				t.Fatalf("settings surface rectangle has no clip: %+v", r)
+			}
+			if r.ClipOf.Y < windowBarHeight+1 {
+				t.Fatalf("settings surface rectangle ClipOf.Y = %v, expected at least %v", r.ClipOf.Y, windowBarHeight+1)
+			}
+		}
+	}
+	if !foundSettingsRect {
+		t.Fatal("did not find any settings surface rectangles")
+	}
+}
