@@ -44,7 +44,8 @@ func (v *aiPlainTextView) layoutBody(canvas *ui.Canvas, source string, size, lin
 	if source == "" || maxLines <= 0 {
 		return
 	}
-	for from := 0; from >= 0 && len(v.lines) < maxLines; {
+	from := 0
+	for from >= 0 && len(v.lines) < maxLines {
 		row, next := canvas.WrapRow(source, from, size, ui.WeightRegular, width)
 		// WrapLines, which this block replaces for user messages, does not add
 		// another empty row after a final newline.
@@ -54,6 +55,11 @@ func (v *aiPlainTextView) layoutBody(canvas *ui.Canvas, source string, size, lin
 		text := strings.TrimRight(source[row.Start:row.End], " ")
 		v.lines = append(v.lines, aiPlainTextLine{start: row.Start, end: row.End, text: text})
 		from = next
+	}
+	if len(v.lines) == maxLines && from >= 0 && from < len(source) {
+		// WrapLines marked the last row it kept; the block must not look whole.
+		last := &v.lines[len(v.lines)-1]
+		last.text = strings.TrimRight(last.text, " ") + "…"
 	}
 }
 

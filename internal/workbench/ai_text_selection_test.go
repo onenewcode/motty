@@ -687,3 +687,22 @@ func TestAnswerSelectionClampsToTheRenderedText(t *testing.T) {
 		t.Fatalf("the selection was not clamped: %+v", panel.textSelect.sel)
 	}
 }
+
+// A message past the block's line budget must say it was cut; before this the
+// last painted row looked like the end of what the user sent.
+func TestTruncatedUserMessageEndsWithAnEllipsis(t *testing.T) {
+	state, _ := panelState(t, nil)
+	state.ai.open = true
+	var text strings.Builder
+	for range 5000 {
+		text.WriteString("line\n")
+	}
+	state.ai.items = []aiItem{{kind: aiUser, text: text.String()}}
+	canvas, _ := paintAt(state, panelWide)
+	for _, painted := range canvas.Texts() {
+		if strings.HasSuffix(painted.Value, "…") {
+			return
+		}
+	}
+	t.Fatal("the truncated user message does not show that it was cut")
+}
