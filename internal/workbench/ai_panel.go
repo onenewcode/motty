@@ -683,17 +683,6 @@ func aiTextTarget(id ui.ID) (row int, part aiTextPart, ok bool) {
 	}
 }
 
-// aiScrollbarOffsetForThumb inverts MessageScroller's thumb placement. A full
-// track has no drag travel, so it preserves the offset instead of jumping to zero.
-func aiScrollbarOffsetForThumb(geometry components.MessageScrollerGeometry, thumbTop float32) float32 {
-	travel := geometry.Track.Height - geometry.Thumb.Height
-	if travel <= 0 || geometry.MaxOffset <= 0 {
-		return geometry.Offset
-	}
-	offset := (thumbTop - geometry.Track.Y) * geometry.MaxOffset / travel
-	return min(max(offset, 0), geometry.MaxOffset)
-}
-
 // aiReleaseMessageScroll disengages the live edge without moving the reader.
 // Restoring the offset with AutoScroll temporarily off prevents ScrollTo from
 // immediately taking hold of the edge again.
@@ -710,6 +699,14 @@ func aiReleaseMessageScroll(scroll *components.MessageScrollState) {
 func (state *State) aiPanelScrollbarPointer(event ui.PointerEvent) (ui.EventResult, bool) {
 	panel := &state.ai.panel
 	bar := &panel.scrollbar
+	// A window that deactivates mid-drag (Cmd-Tab) never delivers the PointerUp.
+	// Cancel on a press elsewhere and let that press through, so the panel does
+	// not answer every later click with the stale gesture.
+	if event.Kind == ui.PointerDown && bar.dragging &&
+		event.Target != hitAIMessageBar && event.Target != hitAIHistoryBar {
+		bar.dragging = false
+		return ui.EventResult{}, false
+	}
 	history := event.Target == hitAIHistoryBar
 	if event.Kind == ui.PointerDown && (history || event.Target == hitAIMessageBar) {
 		primary := event.Button == ui.PointerButtonPrimary || event.Button == ui.PointerButtonNone
@@ -760,7 +757,7 @@ func (state *State) aiPanelScrollbarPointer(event ui.PointerEvent) (ui.EventResu
 	if event.Kind != ui.PointerMove {
 		return ui.EventResult{Handled: true}, true
 	}
-	offset := aiScrollbarOffsetForThumb(bar.dragGeometry, event.Y-bar.grab)
+	offset := bar.dragGeometry.OffsetForThumb(event.Y - bar.grab)
 	return state.aiPanelScrollTo(offset), true
 }
 

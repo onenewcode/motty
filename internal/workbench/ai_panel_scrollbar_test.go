@@ -141,7 +141,7 @@ func TestAIScrollbarZeroTravelAndStreamingReleaseKeepOffset(t *testing.T) {
 	geometry := components.MessageScrollerGeometry{
 		Track: ui.Rect{Height: 18}, Thumb: ui.Rect{Height: 18}, Offset: 40, MaxOffset: 100,
 	}
-	if got := aiScrollbarOffsetForThumb(geometry, 100); got != 40 {
+	if got := geometry.OffsetForThumb(100); got != 40 {
 		t.Fatalf("zero-travel thumb moved offset to %v", got)
 	}
 
@@ -233,15 +233,38 @@ func TestAIScrollbarThemeKeepsThumbVisible(t *testing.T) {
 	for _, appearance := range []appearance{appearanceDark, appearanceLight} {
 		state.setAppearance(appearance)
 		theme := state.aiScrollbarTheme()
-		if theme.Border != state.pal.faint || theme.Border == state.pal.line {
-			t.Fatalf("%s resting thumb color = %+v, want visible faint color %+v", appearance, theme.Border, state.pal.faint)
+		// The thumb used to take the hairline border color, which is invisible
+		// against the panel; it must differ from it and from the track, and the
+		// hover state must be stronger than the resting one.
+		if theme.Border == state.pal.line {
+			t.Fatalf("%s resting thumb still uses the hairline color", appearance)
 		}
-		if theme.MutedForeground != state.pal.text {
-			t.Fatalf("%s hover thumb color = %+v, want text color %+v", appearance, theme.MutedForeground, state.pal.text)
+		if theme.MutedForeground == theme.Border {
+			t.Fatalf("%s hover thumb is not stronger than the resting one", appearance)
 		}
 		if state.Theme().Border != state.pal.line {
 			t.Fatalf("%s scrollbar changed the global border color", appearance)
 		}
+	}
+}
+
+func TestAIScrollbarDragEndsOnANewPressElsewhere(t *testing.T) {
+	state := aiScrollbarPanel(t)
+	paintAt(state, panelWide)
+	geometry := state.ai.panel.scrollbar.geometry
+	y := geometry.Thumb.Y + geometry.Thumb.Height/2
+	aiBarPointer(state, hitAIMessageBar, ui.PointerDown, ui.PointerButtonPrimary, y, false)
+	if !state.ai.panel.scrollbar.dragging {
+		t.Fatal("the thumb did not start dragging")
+	}
+	// The next press lands somewhere else because the release was lost (the
+	// window deactivated mid-drag). It must pass through, not be swallowed.
+	result, handled := state.aiPanelScrollbarPointer(ui.PointerEvent{Kind: ui.PointerDown, Button: ui.PointerButtonPrimary, Target: hitAIToEnd, X: 10, Y: 10, Viewport: panelWide})
+	if state.ai.panel.scrollbar.dragging {
+		t.Fatal("a press elsewhere kept the stale drag")
+	}
+	if handled {
+		t.Fatalf("the scrollbar handler swallowed the press: %+v", result)
 	}
 }
 
