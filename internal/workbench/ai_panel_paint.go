@@ -376,6 +376,15 @@ func (state *State) aiLayoutTool(view *aiRowView, item *aiItem, width, cell, cel
 	view.height = height
 }
 
+// aiScrollbarTheme keeps the narrow thumb visible against the panel at rest,
+// and gives hover and press a clear contrast increase.
+func (state *State) aiScrollbarTheme() ui.Theme {
+	theme := state.Theme()
+	theme.Border = state.pal.faint
+	theme.MutedForeground = state.pal.text
+	return theme
+}
+
 // aiScrollbarValue reports the active list's position, formatted only when the
 // visible percentage changes so a streaming repaint does not allocate for it.
 func (state *State) aiScrollbarValue(history bool, offset, maximum float32) string {
@@ -713,7 +722,7 @@ func (state *State) paintAIHistory(canvas *ui.Canvas, list ui.Rect) {
 	})
 	f.End()
 
-	scroller := components.BeginMessageScroller(canvas, state.Theme(), area, content, panel.historyTop).
+	scroller := components.BeginMessageScroller(canvas, state.aiScrollbarTheme(), area, content, panel.historyTop).
 		Scrollbar(hitAIHistoryBar, m.HistoryScrollbarLabel, state.aiScrollbarValue(true, panel.historyTop, panel.maxTop))
 	scroller.BeginContent()
 	for offset, slot := range panel.rowSlots {
@@ -866,7 +875,7 @@ func (state *State) paintAIMessages(canvas *ui.Canvas, list ui.Rect) {
 	})
 	f.End()
 
-	scroller := components.BeginMessageScroller(canvas, state.Theme(), list, content, scroll).
+	scroller := components.BeginMessageScroller(canvas, state.aiScrollbarTheme(), list, content, scroll).
 		Scrollbar(hitAIMessageBar, m.ScrollbarLabel, state.aiScrollbarValue(false, scroll, panel.maxScroll)).Buttons(ui.ID{}, "", hitAIToEnd, m.ScrollToEnd)
 	scroller.BeginContent()
 	for offset, slot := range panel.rowSlots {

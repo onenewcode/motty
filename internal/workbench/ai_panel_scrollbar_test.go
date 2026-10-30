@@ -228,6 +228,23 @@ func TestAIHistoryScrollbarDragsAndUsesKeyboard(t *testing.T) {
 	}
 }
 
+func TestAIScrollbarThemeKeepsThumbVisible(t *testing.T) {
+	state, _ := panelState(t, nil)
+	for _, appearance := range []appearance{appearanceDark, appearanceLight} {
+		state.setAppearance(appearance)
+		theme := state.aiScrollbarTheme()
+		if theme.Border != state.pal.faint || theme.Border == state.pal.line {
+			t.Fatalf("%s resting thumb color = %+v, want visible faint color %+v", appearance, theme.Border, state.pal.faint)
+		}
+		if theme.MutedForeground != state.pal.text {
+			t.Fatalf("%s hover thumb color = %+v, want text color %+v", appearance, theme.MutedForeground, state.pal.text)
+		}
+		if state.Theme().Border != state.pal.line {
+			t.Fatalf("%s scrollbar changed the global border color", appearance)
+		}
+	}
+}
+
 func TestAIMessageScrollbarNeedsOverflow(t *testing.T) {
 	state, _ := panelState(t, nil)
 	withModel(t, state)
